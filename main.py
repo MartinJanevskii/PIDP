@@ -48,9 +48,6 @@ def create_region_graph(region, offset, grid):
                         if 0 <= neighbor_x < grid.shape[0] and 0 <= neighbor_y < grid.shape[1]:
                             if grid[neighbor_x, neighbor_y] == 0:
                                 boundary_nodes.add((global_x, global_y))
-    print(f"Graph Nodes for Region {offset}: {list(graph.nodes)}")
-    print(f"Graph Edges for Region {offset}: {list(graph.edges)}")
-    print(f"Offset: {offset}, Boundary Nodes: {boundary_nodes}")
     return graph, boundary_nodes
 
 
@@ -96,16 +93,6 @@ def parallel_a_star(region_graphs, start_goal_pairs):
             print(f"Region {i} Path: {result}")
         return results
 
-
-
-def merge_paths(region_paths):
-    global_path = []
-    for path in region_paths:
-        if path:
-            global_path.extend(path[:-1])
-    global_path.append(region_paths[-1][-1])
-    return global_path
-
 def link_regions_and_merge(region_paths, all_boundary_nodes):
     """Link paths across regions using boundary nodes."""
     global_path = []
@@ -136,7 +123,6 @@ def link_regions_and_merge(region_paths, all_boundary_nodes):
 
 def main():
     grid = load_map('testing/test1.csv')
-    print(grid)
     plot_map(grid)
 
     tile_size = 3
@@ -183,22 +169,16 @@ def main():
                 start_goal_pairs.append((boundary_nodes[0], boundary_nodes[1]))
             else:
                 start_goal_pairs.append((None, None))  # No valid path in this region
-    print(start_goal_pairs)
-    # Run A* for each region
-    region_paths = []
-    for graph, (start, goal) in zip(region_graphs, start_goal_pairs):
-        if start is not None and goal is not None:
-            path = a_star_search(graph, start, goal)
-            region_paths.append(path)
-        else:
-            region_paths.append(None)  # No path for regions without valid start/goal
+
+    print("Start/Goal Pairs:", start_goal_pairs)
+
+    # Run A* for each region in parallel
+    region_paths = parallel_a_star(region_graphs, start_goal_pairs)
 
     # Link boundary nodes and merge paths
     combined_path = link_regions_and_merge(region_paths, all_boundary_nodes)
     print("Global Path:", combined_path)
     plot_map(grid, combined_path)
-
-
 
 
 if __name__ == "__main__":
